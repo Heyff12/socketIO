@@ -50,11 +50,11 @@ jobs:
           name: dockerfile
           path: ./Dockerfile
 
-      # - name: store client file
-      #   uses: actions/upload-artifact@v2
-      #   with:
-      #     name: client
-      #     path: client
+      - name: store client file
+        uses: actions/upload-artifact@v2
+        with:
+          name: client
+          path: client
 
   docker-push-image:
     needs: build
@@ -64,10 +64,10 @@ jobs:
         with:
           name: src
           path: ./src
-      # - uses: actions/download-artifact@v2
-      #   with:
-      #     name: client
-      #     path: ./client
+      - uses: actions/download-artifact@v2
+        with:
+          name: client
+          path: ./client
       - uses: actions/download-artifact@v2
         with:
           name: package
