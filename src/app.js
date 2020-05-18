@@ -1,50 +1,95 @@
-// var app = require('http').createServer(handler)
-// var io = require('socket.io')(app);
-// var fs = require('fs');
-
-// app.listen(3004);
-
-// function handler (req, res) {
-//   fs.readFile(__dirname + '/index.html',
-//   function (err, data) {
-//     if (err) {
-//       res.writeHead(500);
-//       return res.end('Error loading index.html');
-//     }
-
-//     res.writeHead(200);
-//     res.end(data);
-//   });
-// }
-
-// io.on('connection', function (socket) {
-//   socket.emit('news', { hello: 'world' });
-//   socket.on('my other event', function (data) {
-//     console.log(data);
-//   });
-// });
-
-
-const app = require('express')();
+const express = require('express');
+const app = express();
+var path = require('path');
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
 
-// app.get('/', function(req, res){
-//   res.send('<h1>Hello world</h1>');
-// });
-app.get('/', function(req, res){
-  res.sendFile(__dirname + '/index.html');
-});
 
+app.use(express.static(path.join(__dirname, '../client')));
 
+var numUsers = 0;
+var usersName = []
 io.on('connection', (socket) => {
-  console.log('a user connected');
-  socket.on('chat message', function(msg){
-    console.log('message: ' + msg);
-    io.emit('chat message', msg);
+  var addedUser = false;
+
+  socket.on('add user',(username)=>{
+    console.log('-------add user----------------------------------------------------------------')
+    console.log(username)
+
+    if (addedUser) return;
+    console.log(addedUser)
+
+    if(usersName.includes(username)){
+      socket.emit('valid name', {
+        result: false,
+        type: 'repeat'
+      });
+      return
+    }
+
+    socket.emit('valid name', {
+      result: true
+    });
+
+    usersName.push(username)
+    socket.username = username
+    ++numUsers
+    addedUser = true;
+    //只发送给当前客户端
+    socket.emit('login', {
+      numUsers: numUsers
+    });
+    //发送给除当前客户端外的所有客户端
+    socket.broadcast.emit('user joined',{
+      username: socket.username,
+      numUsers: numUsers
+    })
+  })
+
+  // when the client emits 'typing', we broadcast it to others
+  socket.on('typing', () => {
+    console.log('-------typing-----------------------------------------------------------------')
+    // console.log(socket)
+
+    socket.broadcast.emit('typing', {
+      username: socket.username
+    });
   });
+
+  // when the client emits 'stop typing', we broadcast it to others
+  socket.on('stop typing', () => {
+    console.log('-------stop typing-----------------------------------------------------------------')
+    // console.log(socket)
+
+    socket.broadcast.emit('stop typing', {
+      username: socket.username
+    });
+  });
+
+  socket.on('new message', (data) => {
+    console.log('-------new message-----------------------------------------------------------------')
+    console.log(data)
+    // we tell the client to execute 'new message'
+    socket.broadcast.emit('new message', {
+      username: socket.username,
+      message: data
+    });
+  });
+
+  // when the user disconnects.. perform this
   socket.on('disconnect', () => {
-    console.log('user disconnected');
+    console.log('-------disconnect-----------------------------------------------------------------')
+    console.log(socket.username,addedUser)
+
+    if (addedUser) {
+      --numUsers;
+
+      // echo globally that this client has left
+      socket.broadcast.emit('user left', {
+        username: socket.username,
+        numUsers: numUsers
+      });
+    }
   });
 });
 
