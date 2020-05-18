@@ -1,0 +1,106 @@
+
+name: Ali deploy CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  IMAGE_NAME: heyff12/socket-io
+  VERSION: latest
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [12.10.0]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      # - run: npm ci
+      # - run: npm run build --if-present
+      # - run: npm test
+      #   env:
+      #     CI: true
+
+      - name: store src file
+        uses: actions/upload-artifact@v2
+        with:
+          name: src
+          path: src
+
+      - name: store package file
+        uses: actions/upload-artifact@v2
+        with:
+          name: package
+          path: ./package*.json
+
+      - name: store dockerfile file
+        uses: actions/upload-artifact@v2
+        with:
+          name: dockerfile
+          path: ./Dockerfile
+
+      - name: store client file
+        uses: actions/upload-artifact@v2
+        with:
+          name: client
+          path: client
+
+  docker-push-image:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: src
+          path: ./src
+      - uses: actions/download-artifact@v2
+        with:
+          name: client
+          path: ./client
+      - uses: actions/download-artifact@v2
+        with:
+          name: package
+      - uses: actions/download-artifact@v2
+        with:
+          name: dockerfile
+      - name: Build the Docker image
+        run: |
+          echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+          docker build -t $IMAGE_NAME:$VERSION .
+          docker push $IMAGE_NAME:$VERSION
+  
+  docker-run:
+    needs: docker-push-image
+    runs-on: ubuntu-latest
+    env:
+      CONTAINER_NAME: heyff12-socket-io
+      # DOCKER_REG: $IMAGE_NAME:$VERSION
+      DOCKER_REG: heyff12/socket-io
+    steps:
+      - name: deploy on remote server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.ACCESS_TOKEN }}
+          port: ${{ secrets.REMOTE_PORT }}
+          command_timeout: 30m
+          envs: CONTAINER_NAME, DOCKER_REG
+          script: |
+            docker pull $DOCKER_REG
+            docker image prune -f
+            if [ $(docker ps -a | grep -c $CONTAINER_NAME) -gt 0 ]; then docker stop $CONTAINER_NAME;docker rm $CONTAINER_NAME;fi
+            docker run --name $CONTAINER_NAME -d --rm -p 3004:3004 $DOCKER_REG
+  
+ 
