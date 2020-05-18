@@ -2,13 +2,16 @@ const express = require('express');
 const app = express();
 var path = require('path');
 const http = require('http').Server(app);
-const io = require('socket.io')(http);
+const io = require('socket.io')(http,{
+  path: '/myownpath'
+});
 
 
 app.use(express.static(path.join(__dirname, '../client')));
 
 var numUsers = 0;
 var usersName = []
+// io.of('/chat')
 io.on('connection', (socket) => {
   var addedUser = false;
 

@@ -23,7 +23,11 @@ $(function() {
   var lastTypingTime;
   var $currentInput = $usernameInput.focus();
 
-  var socket = io();
+  var socket = io({
+    path: '/myownpath'
+  })
+  // .connect('http://localhost:3004/chat');
+  // var socket = io();
 
   const addParticipantsMessage = (data) => {
     var message = '';
@@ -205,7 +209,7 @@ $(function() {
   // Keyboard events
 
   $window.keydown(event => {
-    console.log(event)
+    // console.log(event)
     // Auto-focus the current input when a key is typed
     if (!(event.ctrlKey || event.metaKey || event.altKey)) {
       $currentInput.focus();
