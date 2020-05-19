@@ -86,6 +86,7 @@ io.on('connection', (socket) => {
 
     if (addedUser) {
       --numUsers;
+      usersName = usersName.filter(name=>name!==socket.username)
 
       // echo globally that this client has left
       socket.broadcast.emit('user left', {
