@@ -33,25 +33,25 @@ jobs:
       #     CI: true
 
       - name: store src file
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: src
           path: src
 
       - name: store package file
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: package
           path: ./package*.json
 
       - name: store dockerfile file
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: dockerfile
           path: ./Dockerfile
 
       - name: store client file
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: client
           path: client
@@ -60,18 +60,18 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
         with:
           name: src
           path: ./src
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
         with:
           name: client
           path: ./client
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
         with:
           name: package
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
         with:
           name: dockerfile
       - name: Build the Docker image
